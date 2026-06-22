@@ -1,25 +1,49 @@
-# 数据报告自动化助手
+# Data Report Automation
 
-粘贴 CSV 数据,自动生成分析报告:关键发现、趋势、异常、建议。
+> 🇨🇳 [中文版见下方](#中文说明)
 
-## 核心设计
+Paste CSV data, get an automated analysis report: key findings, trend analysis, anomalies, and actionable recommendations.
 
-**数字在代码里算,结论让 AI 写。** LLM 算数不可靠是已知问题,所以统计计算(均值、增长率、异常检测)全在 Python 里完成,LLM 只拿计算好的摘要做"读懂数字、写结论"——让每个组件只干它擅长的事。
+## Core Design Principle: Separate Calculation from Language
 
-## 五个项目对比
+LLMs are unreliable at arithmetic. The solution isn't to hope they get it right — it's to not ask them to do math at all.
 
-| 项目 | 形态 | 场景 |
-|------|------|------|
-| doc-qa-agent | 问答型 | 基于文档精确回答 |
-| ecom-agent-crew | 协作型 | 多角色接力生成内容 |
-| contract-review-agent | 审查型 | 逐条标记风险 |
-| resume-screener | 评估型 | 批量对比打分排序 |
-| data-report-agent(本项目) | 分析型 | 数据统计+AI解读 |
+```
+CSV input
+    │
+    ▼
+[Python layer]  →  compute stats accurately
+                   (mean, sum, max, min, growth %, per-column type detection)
+    │
+    ▼
+[LLM layer]     →  read numbers, write conclusions
+                   ("sales grew 56% — here's what that means for operations")
+```
 
-## 运行
+Each component does only what it's good at. The LLM never sees raw CSV — it sees a pre-computed summary.
+
+This same principle appears in doc-qa-agent's safe calculator tool: arithmetic goes to code (AST-safe eval), language generation stays with the model.
+
+## Offline Mode
+
+Without an API key, Python still computes all statistics and returns them with basic labels. The calculation layer works independently of the language layer.
+
+## Stack
+
+Python · FastAPI · asyncio · DeepSeek/OpenAI-compatible · Docker
+
+## Quick Start
 
 ```bash
 pip install -r requirements.txt
-export DEEPSEEK_API_KEY=sk-xxxx
+export DEEPSEEK_API_KEY=sk-xxxx   # optional
 uvicorn backend.main:app --reload
 ```
+
+---
+
+## 中文说明
+
+粘贴 CSV 数据，自动生成分析报告：关键发现、趋势分析、异常、建议。
+
+**核心设计：数字计算和语言生成分离。** AI 算数不可靠是公认问题，所以 Python 层负责把统计数字算准确，然后把计算好的摘要喂给 AI，让它只做"读懂数字、写结论"这件它擅长的事。这和 doc-qa-agent 里安全计算器工具的设计原则完全一致。
