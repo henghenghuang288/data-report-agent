@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>数据报告自动化助手</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1117;--surface:#1a1d27;--panel:#21253a;--ink:#e8eaf0;--soft:#8891b0;--line:#2d3150;--purple:#7c6af7;--purple-soft:rgba(124,106,247,0.15);--green:#4ade80;--green-soft:rgba(74,222,128,0.12);--amber:#fbbf24;--red:#f87171;--mono:'IBM Plex Mono',monospace;--body:'Inter',system-ui,sans-serif;--radius:10px;}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);}
+.top{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:8px;}
+.brand{font-weight:700;font-size:17px;letter-spacing:-.01em;}
+.brand span{color:var(--purple);}
+.mode{font-family:var(--mono);font-size:11.5px;padding:4px 10px;border-radius:20px;background:var(--line);color:var(--soft);}
+.mode.live{background:var(--green-soft);color:var(--green);}
+.wrap{max-width:960px;margin:0 auto;padding:24px;}
+.sub{color:var(--soft);font-size:14px;margin-bottom:20px;}
+.input-area{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;}
+.input-area textarea{width:100%;background:transparent;border:none;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--ink);resize:vertical;min-height:160px;}
+.input-area textarea:focus{outline:none;}
+.input-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--line);flex-wrap:wrap;gap:8px;}
+.hint{font-family:var(--mono);font-size:11.5px;color:var(--soft);}
+.run-btn{background:var(--purple);color:#fff;border:none;border-radius:8px;padding:10px 22px;font-weight:600;font-size:14px;cursor:pointer;}
+.run-btn:hover:not(:disabled){filter:brightness(1.1);}
+.run-btn:disabled{opacity:.5;cursor:not-allowed;}
+.report{margin-top:20px;}
+.summary-box{background:var(--purple-soft);border:1px solid var(--purple);border-radius:var(--radius);padding:16px 18px;margin-bottom:20px;}
+.summary-box .label{font-family:var(--mono);font-size:11px;color:var(--purple);margin-bottom:6px;}
+.summary-box .text{font-size:15px;font-weight:500;line-height:1.5;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+@media(max-width:640px){.grid{grid-template-columns:1fr;}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px;}
+.card h3{font-family:var(--mono);font-size:11.5px;color:var(--soft);margin:0 0 10px;text-transform:uppercase;letter-spacing:.05em;}
+ul.findings{list-style:none;margin:0;padding:0;}
+ul.findings li{padding:6px 0;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+ul.findings li:last-child{border-bottom:none;}
+ul.findings li::before{content:"→ ";color:var(--purple);}
+ul.recs li::before{content:"✓ ";color:var(--green);}
+ul.anomalies li::before{content:"⚠ ";color:var(--amber);}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:14px;}
+.stat-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;}
+.stat-card .col{font-family:var(--mono);font-size:11px;color:var(--soft);margin-bottom:6px;}
+.stat-card .val{font-family:var(--mono);font-weight:600;font-size:18px;color:var(--ink);}
+.stat-card .chg{font-family:var(--mono);font-size:11.5px;margin-top:4px;}
+.chg.up{color:var(--green);} .chg.dn{color:var(--red);}
+.meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;padding:10px 14px;background:var(--surface);border-radius:8px;font-family:var(--mono);font-size:12px;color:var(--soft);}
+.meta b{color:var(--ink);}
+.empty{text-align:center;color:var(--soft);padding:30px 0;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand">数据报告<span>自动化</span>助手</div>
+  <div class="mode" id="modePill">检测中…</div>
+</div>
+<div class="wrap">
+  <p class="sub">粘贴 CSV 格式的运营/销售数据,系统先做统计计算,再让 AI 解读趋势、找出异常、给出建议。数字计算在代码里完成(准确),AI 只做"读懂数字写结论"(擅长)。</p>
+  <div class="input-area">
+    <textarea id="csvInput" placeholder="粘贴 CSV 数据…">月份,销售额,订单数,客单价,退货率
+2026-01,125000,520,240,3.2
+2026-02,118000,498,237,3.8
+2026-03,142000,601,236,2.9
+2026-04,138000,589,234,3.1
+2026-05,167000,698,239,2.5
+2026-06,195000,812,240,2.1</textarea>
+    <div class="input-bar">
+      <span class="hint">支持任意列名 · 数值列自动识别 · 最多 10000 行</span>
+      <button class="run-btn" id="runBtn">生成报告</button>
+    </div>
+  </div>
+  <div id="output"><div class="empty">粘贴数据,点"生成报告"。</div></div>
+</div>
+<script>
+const modePill=document.getElementById('modePill');
+const runBtn=document.getElementById('runBtn');
+const output=document.getElementById('output');
+fetch('/api/health').then(r=>r.json()).then(d=>{
+  modePill.textContent=d.live_mode?'智能分析 · 在线':'离线统计模式';
+  modePill.classList.toggle('live',d.live_mode);
+}).catch(()=>{modePill.textContent='后端未连接';});
+function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
+function render(d){
+  const r=d.report, s=d.stats;
+  // 统计卡片
+  const statCards=Object.entries(s.column_stats).filter(([,v])=>v.type==='numeric').map(([col,v])=>{
+    const chg=v.first_to_last_change_pct;
+    const chgHtml=chg!=null?`<div class="chg ${chg>=0?'up':'dn'}">${chg>=0?'↑':'↓'} ${Math.abs(chg)}% (首→尾)</div>`:'';
+    return `<div class="stat-card"><div class="col">${esc(col)}</div><div class="val">${esc(v.mean)}</div><div style="font-family:var(--mono);font-size:11px;color:var(--soft)">均值 · 总计 ${esc(v.sum)}</div>${chgHtml}</div>`;
+  }).join('');
+  const summaryHtml=r.summary?`<div class="summary-box"><div class="label">一句话总结</div><div class="text">${esc(r.summary)}</div></div>`:'';
+  const findingsHtml=r.key_findings&&r.key_findings.length?`<div class="card"><h3>关键发现</h3><ul class="findings">${r.key_findings.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:'';
+  const recsHtml=r.recommendations&&r.recommendations.length?`<div class="card"><h3>建议</h3><ul class="findings recs">${r.recommendations.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:'';
+  const anomalyHtml=r.anomalies&&r.anomalies.length?`<div class="card"><h3>异常 / 关注点</h3><ul class="findings anomalies">${r.anomalies.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:'';
+  const trendsHtml=r.trends?`<div class="card" style="grid-column:1/-1"><h3>趋势分析</h3><p style="font-size:14px;line-height:1.7;margin:0;color:var(--soft)">${esc(r.trends)}</p></div>`:'';
+  const meta=`<div class="meta"><span>模式 <b>${esc(d.mode)}</b></span><span>行数 <b>${s.row_count}</b></span><span>耗时 <b>${d.total_latency_ms} ms</b></span><span>Token <b>${d.total_tokens||'—'}</b></span></div>`;
+  output.innerHTML=`<div class="report">${summaryHtml}<div class="stat-grid">${statCards}</div><div class="grid">${findingsHtml}${recsHtml}${anomalyHtml}${trendsHtml}</div>${meta}</div>`;
+}
+runBtn.addEventListener('click',async()=>{
+  runBtn.disabled=true; runBtn.textContent='分析中…';
+  output.innerHTML='<div class="empty">计算统计数据,生成报告中…</div>';
+  try{
+    const r=await fetch('/api/report',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({csv_text:document.getElementById('csvInput').value})}).then(r=>r.json());
+    if(r.detail){output.innerHTML=`<div class="empty">${esc(r.detail)}</div>`;}
+    else{render(r);}
+  }catch(e){output.innerHTML='<div class="empty">请求失败,请确认后端已启动。</div>';}
+  finally{runBtn.disabled=false;runBtn.textContent='生成报告';}
+});
+</script>
+</body>
+</html>
