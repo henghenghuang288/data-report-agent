@@ -10,6 +10,24 @@ app = FastAPI(title="数据报告自动化助手")
 class ReportRequest(BaseModel):
     csv_text: str
 
+@app.get("/api/info")
+def info():
+    """项目信息接口——面试官打开API第一眼就能看到这是什么。"""
+    return {
+        "name": "数据报告自动化助手",
+        "name_en": "Data Report Automation",
+        "version": "1.0.0",
+        "description": "CSV数据→Python精确统计→AI解读趋势异常建议",
+        "description_en": "CSV → Python computes stats accurately → LLM writes findings (separation of calculation and language)",
+        "architecture": "calculation-language separation, Python stats + LLM interpretation",
+        "github": "https://github.com/henghenghuang288/data-report-agent",
+        "endpoints": [
+                "/api/health",
+                "/api/report"
+        ]
+}
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok", "live_mode": is_live()}
